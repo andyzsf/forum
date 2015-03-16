@@ -9,7 +9,7 @@ from django.contrib import admin
 admin.autodiscover()
 admin.site.login = login_required(admin.site.login) # 设置admin登录的页面，settings.LOGIN_URL
 
-import forum.urls
+import forum.urls, api.urls
 
 urlpatterns = patterns('',
     # Examples:
@@ -22,5 +22,6 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
     url(r'^', include(forum.urls)),
+    url(r'^api/', include(api.urls)),
     url(r'^manage/admin/', include(admin.site.urls)),
 )
