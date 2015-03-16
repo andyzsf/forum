@@ -12,9 +12,8 @@ from django.template import RequestContext
 from django.conf import settings
 
 from forum.models import ForumUser
-from forum.views.user import get_login
-from api.forms.oauth import OauthForm
 from forum.forms.user import LoginForm
+from api.forms.oauth import OauthForm
 
 
 _OAUTH_ERROR = {
@@ -38,27 +37,23 @@ def _oauth_error(code):
 # 生成access_token
 def make_access_token(client_id, id, password, max_age=5184000000):
     expires = str(int(time.time()) + max_age)
-    L = [str(client_id), str(id), expires, hashlib.md5('%s-%s-%s-%s-%s' % (client_id, id,\
+    L = [str(id), expires, hashlib.md5('%s-%s-%s-%s-%s' % (client_id, id,\
         password, expires, settings.SECRET_KEY)).hexdigest()]
     return base64.encodestring('-'.join(L)), expires
 
 
 # 解析access_token
-def parse_access_token(cid, token):
+def parse_access_token(client_id, token):
     try:
         L = base64.decodestring(token).split('-')
-        if len(L) != 4:
+        if len(L) != 3:
             return _oauth_error('0006')
-        client_id, id, expires, md5 = L
-        if client_id != cid:
-            return _oauth_error('0006')
+        id, expires, md5 = L
         if int(expires) < time.time():
             return _oauth_error('0004')
         try:
             user = ForumUser.get(pk=id)
         except ForumUser.DoesNotExist:
-            user = None
-        if not user:
             return _oauth_error('0006')
         if md5 != hashlib.md5('%s-%s-%s-%s-%s' % (client_id, id, user.password, expires, settings.SECRET_KEY)).hexdigest():
             return _oauth_error('0006')
@@ -76,7 +71,7 @@ def login_required(func):
             r = parse_access_token(client_id, access_token)
             if isinstance(r, HttpResponse):
                 return r
-            request.user = user
+            request.user = r
             return func(request, *args, **kwargs)
         return _oauth_error('0006')
     return _wrapped_view
@@ -112,7 +107,8 @@ class OauthView(View):
 
         post_form = LoginForm(request.POST)
         if not post_form.is_valid():
-            return get_login(request, errors=post_form.errors)
+            return render_to_response('user/login.html', {'errors': post_form.errors},\
+                context_instance=RequestContext(request))
 
         user = post_form.get_user()
         access_token, expires_in = make_access_token(get_form.cleaned_data.get('client_id'), user.id, user.password)
