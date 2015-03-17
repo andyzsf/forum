@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
 from forum.forms.user import LoginForm
 
-from views import oauth
+from views import oauth, topic
 
 # Uncomment the next two lines to enable the admin:
 # from django.contrib import admin
@@ -18,4 +18,7 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
     url(r'^authorize$', oauth.OauthView.as_view()),
+    url(r'^topics$', topic.TopicsView.as_view()),
+    url(r'^topics/(\d+)$', topic.TopicView.as_view()),
+    url(r'^topics/(\d+)/replies$', topic.ReplysView.as_view()),
 )
